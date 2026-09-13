@@ -1,0 +1,494 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌈 彩虹跳跃 · 小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(145deg, #0b1120, #1a2a3a);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            touch-action: manipulation;
+        }
+        .game-wrapper {
+            background: #1f2e3f;
+            padding: 20px 20px 25px;
+            border-radius: 48px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.08);
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            aspect-ratio: 400 / 600;
+            border-radius: 28px;
+            background: #9fc7e0;
+            box-shadow: inset 0 -6px 0 #3a5f7a, 0 12px 24px rgba(0,0,0,0.5);
+            cursor: pointer;
+            touch-action: none;
+        }
+        .info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding: 0 8px;
+            color: #d3e5f5;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.4);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .score-box {
+            background: #0e1a26;
+            padding: 8px 22px;
+            border-radius: 60px;
+            font-size: 1.5rem;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.6), 0 2px 0 #5b7f99;
+            color: #ffe484;
+        }
+        .restart-btn {
+            background: #2d445b;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 8px 24px;
+            border-radius: 60px;
+            box-shadow: 0 6px 0 #0f1a24, 0 4px 12px rgba(0,0,0,0.4);
+            transition: all 0.08s ease;
+            cursor: pointer;
+            touch-action: manipulation;
+            letter-spacing: 0.5px;
+        }
+        .restart-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 #0f1a24;
+        }
+        .hint {
+            margin-top: 12px;
+            text-align: center;
+            color: #7d9dbb;
+            font-weight: 400;
+            font-size: 0.9rem;
+            letter-spacing: 0.8px;
+        }
+        @media (max-width: 480px) {
+            .game-wrapper { padding: 12px; border-radius: 32px; }
+            .score-box { font-size: 1.2rem; padding: 6px 16px; }
+            .restart-btn { font-size: 1rem; padding: 6px 18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div class="info">
+        <span class="score-box">🏆 <span id="scoreDisplay">0</span></span>
+        <button class="restart-btn" id="restartButton">↻ 重来</button>
+    </div>
+    <div class="hint">⬆️ 点击 / 空格跳跃 · 彩虹之上</div>
+</div>
+<script>
+    (function() {
+        // ---------- 画布与上下文 ----------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreDisplay');
+
+        // ---------- 固定尺寸 ----------
+        const CANVAS_W = 400;
+        const CANVAS_H = 600;
+        canvas.width = CANVAS_W;
+        canvas.height = CANVAS_H;
+
+        // ---------- 游戏状态 ----------
+        let gameOver = false;
+        let score = 0;
+
+        // ---------- 玩家 ----------
+        const player = {
+            x: 70,
+            y: 380,
+            radius: 18,
+            vy: 0,
+            gravity: 0.55,
+            jumpPower: -10,
+            groundY: 500,          // 地面高度 (y坐标)
+            color: '#FFD966'
+        };
+
+        // ---------- 障碍物 (彩虹柱) ----------
+        let obstacles = [];
+        const OBSTACLE_W = 28;
+        const OBSTACLE_MIN_H = 35;
+        const OBSTACLE_MAX_H = 120;
+        const OBSTACLE_SPEED = 4.2;
+        const OBSTACLE_GAP = 220;          // 上下障碍物之间的空隙 (从上一个柱子底部到下一个柱子顶部)
+        const SPAWN_INTERVAL = 95;          // 帧数间隔
+        let frameCounter = 0;
+
+        // ---------- 彩虹颜色 (柱子渐变) ----------
+        const RAINBOW_COLORS = [
+            '#FF6B6B', // 红
+            '#FF9F43', // 橙
+            '#FECA57', // 黄
+            '#48DBFB', // 蓝
+            '#A29BFE', // 紫
+            '#FD79A8'  // 粉
+        ];
+
+        // ---------- 重置游戏 ----------
+        function resetGame() {
+            gameOver = false;
+            score = 0;
+            updateScoreDisplay();
+            player.y = player.groundY - player.radius;
+            player.vy = 0;
+            obstacles = [];
+            frameCounter = 0;
+        }
+
+        // ---------- 生成障碍物 (彩虹柱对) ----------
+        function spawnObstacle() {
+            // 随机高度 (下柱高度)
+            const minH = OBSTACLE_MIN_H;
+            const maxH = OBSTACLE_MAX_H;
+            const lowerHeight = Math.floor(Math.random() * (maxH - minH + 1)) + minH;
+            // 上柱高度 = 总高度 - 下柱高度 - 空隙
+            const upperHeight = CANVAS_H - lowerHeight - OBSTACLE_GAP;
+            // 保证上柱至少有一点高度 (如果空隙太大，上柱可能为负，强制最小高度)
+            const finalUpperHeight = Math.max(upperHeight, 15);
+            // 如果上柱高度被强制，可能超出画布? 但我们限制空隙让上柱至少15px
+            // 重新调整下柱高度，让总高度 = lowerHeight + gap + upperHeight = canvas高度
+            // 但为了保险，我们直接用计算值，并保证上柱>0
+            let lower = lowerHeight;
+            let upper = finalUpperHeight;
+            // 若上下柱加起来超过画布高（极少情况），则压缩下柱
+            if (lower + upper + OBSTACLE_GAP > CANVAS_H) {
+                lower = CANVAS_H - upper - OBSTACLE_GAP;
+                if (lower < OBSTACLE_MIN_H) {
+                    lower = OBSTACLE_MIN_H;
+                    upper = CANVAS_H - lower - OBSTACLE_GAP;
+                    if (upper < 15) upper = 15;
+                }
+            }
+
+            // 随机颜色 (从彩虹中取色)
+            const colorIndex = Math.floor(Math.random() * RAINBOW_COLORS.length);
+            const color = RAINBOW_COLORS[colorIndex];
+
+            obstacles.push({
+                x: CANVAS_W,
+                lowerHeight: lower,
+                upperHeight: upper,
+                width: OBSTACLE_W,
+                color: color,
+                // 用于绘制发光边缘 (略微亮色)
+                lightColor: color,
+            });
+        }
+
+        // ---------- 更新逻辑 ----------
+        function update() {
+            if (gameOver) return;
+
+            // 1. 玩家物理
+            player.vy += player.gravity;
+            player.y += player.vy;
+
+            // 地面碰撞
+            if (player.y + player.radius > player.groundY) {
+                player.y = player.groundY - player.radius;
+                player.vy = 0;
+            }
+            // 天花板碰撞 (防止飞出顶部)
+            if (player.y - player.radius < 0) {
+                player.y = player.radius;
+                player.vy = 0;
+            }
+
+            // 2. 障碍物移动 & 移除 & 得分
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= OBSTACLE_SPEED;
+
+                // 得分: 当障碍物完全通过玩家左侧 (并且未计分)
+                if (!obs.passed && obs.x + obs.width < player.x - player.radius) {
+                    obs.passed = true;
+                    score++;
+                    updateScoreDisplay();
+                }
+
+                // 移除屏幕外
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // 3. 生成新障碍物
+            frameCounter++;
+            if (frameCounter >= SPAWN_INTERVAL) {
+                frameCounter = 0;
+                spawnObstacle();
+            }
+
+            // 4. 碰撞检测 (玩家 vs 障碍物)
+            for (let obs of obstacles) {
+                // 粗略矩形碰撞 (玩家圆形 vs 上下柱子)
+                const playerLeft = player.x - player.radius;
+                const playerRight = player.x + player.radius;
+                const playerTop = player.y - player.radius;
+                const playerBottom = player.y + player.radius;
+
+                // 下柱矩形: (obs.x, 底部) 高度 lowerHeight
+                const lowerRect = {
+                    left: obs.x,
+                    right: obs.x + obs.width,
+                    top: CANVAS_H - obs.lowerHeight,
+                    bottom: CANVAS_H
+                };
+                // 上柱矩形: (obs.x, 顶部) 高度 upperHeight
+                const upperRect = {
+                    left: obs.x,
+                    right: obs.x + obs.width,
+                    top: 0,
+                    bottom: obs.upperHeight
+                };
+
+                // 碰撞检测 (矩形与圆)
+                function rectCircleCollide(rect, circle) {
+                    const closestX = Math.max(rect.left, Math.min(circle.x, rect.right));
+                    const closestY = Math.max(rect.top, Math.min(circle.y, rect.bottom));
+                    const dx = circle.x - closestX;
+                    const dy = circle.y - closestY;
+                    return (dx * dx + dy * dy) < (circle.radius * circle.radius);
+                }
+
+                if (rectCircleCollide(lowerRect, player) || rectCircleCollide(upperRect, player)) {
+                    gameOver = true;
+                    break;
+                }
+            }
+
+            // 额外: 如果玩家掉到地面以下 (安全措施)
+            if (player.y + player.radius > CANVAS_H + 20) {
+                gameOver = true;
+            }
+        }
+
+        // ---------- 绘制 ----------
+        function draw() {
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // ----- 背景 (渐变天空) -----
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+            skyGrad.addColorStop(0, '#b2dff0');
+            skyGrad.addColorStop(0.7, '#d7ecf5');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // 远处云朵 (装饰)
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            for (let i = 0; i < 4; i++) {
+                let x = (i * 130 + frameCounter * 0.2) % 500 - 80;
+                ctx.beginPath();
+                ctx.arc(x, 70 + i * 20, 40, 0, Math.PI * 2);
+                ctx.arc(x + 40, 60 + i * 18, 32, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ----- 地面 (彩虹草地) -----
+            const groundY = player.groundY;
+            ctx.fillStyle = '#7dcea0';
+            ctx.fillRect(0, groundY, CANVAS_W, CANVAS_H - groundY);
+            // 草地纹理线
+            ctx.strokeStyle = '#5dab7a';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < CANVAS_W; i += 15) {
+                ctx.beginPath();
+                ctx.moveTo(i, groundY + 8);
+                ctx.lineTo(i + 6, groundY - 2);
+                ctx.stroke();
+            }
+
+            // ----- 障碍物 (彩虹柱) -----
+            for (let obs of obstacles) {
+                const x = obs.x;
+                const w = obs.width;
+                const color = obs.color;
+
+                // 下柱
+                const lowerH = obs.lowerHeight;
+                const lowerY = CANVAS_H - lowerH;
+                const gradLower = ctx.createLinearGradient(x, lowerY, x + w, lowerY + lowerH);
+                gradLower.addColorStop(0, color);
+                gradLower.addColorStop(1, '#b84a4a');
+                ctx.fillStyle = gradLower;
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(x, lowerY, w, lowerH);
+                // 高光线
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,240,0.25)';
+                ctx.fillRect(x + 2, lowerY + 4, 6, lowerH - 8);
+
+                // 上柱
+                const upperH = obs.upperHeight;
+                const gradUpper = ctx.createLinearGradient(x, 0, x + w, upperH);
+                gradUpper.addColorStop(0, '#ffb07c');
+                gradUpper.addColorStop(1, color);
+                ctx.fillStyle = gradUpper;
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(x, 0, w, upperH);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,240,0.25)';
+                ctx.fillRect(x + 2, 4, 6, upperH - 8);
+
+                // 边缘发光 (彩虹感)
+                ctx.strokeStyle = 'rgba(255,255,220,0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(x, lowerY, w, lowerH);
+                ctx.strokeRect(x, 0, w, upperH);
+            }
+
+            // ----- 玩家 (小英雄) -----
+            const px = player.x, py = player.y, r = player.radius;
+            // 发光
+            ctx.shadowColor = '#f7dc6f';
+            ctx.shadowBlur = 24;
+
+            // 身体 (渐变)
+            const gradPlayer = ctx.createRadialGradient(px-6, py-6, 6, px, py, r+2);
+            gradPlayer.addColorStop(0, '#ffe68f');
+            gradPlayer.addColorStop(0.8, '#f1b84d');
+            ctx.beginPath();
+            ctx.arc(px, py, r, 0, Math.PI * 2);
+            ctx.fillStyle = gradPlayer;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 眼睛
+            ctx.fillStyle = '#2d2d2d';
+            ctx.beginPath();
+            ctx.arc(px - 7, py - 5, 4, 0, Math.PI * 2);
+            ctx.arc(px + 7, py - 5, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(px - 9, py - 8, 2, 0, Math.PI * 2);
+            ctx.arc(px + 5, py - 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 腮红 (可爱)
+            ctx.fillStyle = 'rgba(255,150,150,0.3)';
+            ctx.beginPath();
+            ctx.arc(px - 12, py + 4, 4, 0, Math.PI * 2);
+            ctx.arc(px + 12, py + 4, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 小披风 (动态)
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.moveTo(px + 10, py - 10);
+            ctx.lineTo(px + 20, py + 8);
+            ctx.lineTo(px + 10, py + 12);
+            ctx.fill();
+
+            // ----- Game Over 蒙层 -----
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(20,20,30,0.6)';
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.font = 'bold 38px "Segoe UI", system-ui, sans-serif';
+                ctx.fillStyle = '#ffe484';
+                ctx.shadowColor = '#00000055';
+                ctx.shadowBlur = 18;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('💔 坠落', CANVAS_W/2, CANVAS_H/2 - 30);
+                ctx.font = '22px sans-serif';
+                ctx.fillStyle = '#d3e5f5';
+                ctx.fillText('点击 / 空格 重来', CANVAS_W/2, CANVAS_H/2 + 50);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // ---------- 辅助函数 ----------
+        function updateScoreDisplay() {
+            scoreSpan.textContent = score;
+        }
+
+        // ---------- 跳跃 ----------
+        function jump() {
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            // 只有在地面 (或非常接近地面) 才能跳
+            if (player.y + player.radius >= player.groundY - 2) {
+                player.vy = player.jumpPower;
+                // 小音效感 (无声音, 加个视觉反馈)
+            }
+        }
+
+        // ---------- 循环动画 ----------
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ---------- 事件绑定 ----------
+        function bindEvents() {
+            // 鼠标 / 触屏 点击 canvas
+            canvas.addEventListener('click', (e) => {
+                e.preventDefault();
+                jump();
+            });
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                jump();
+            }, { passive: false });
+
+            // 键盘 空格
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    jump();
+                }
+            });
+
+            // 重启按钮
+            document.getElementById('restartButton').addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetGame();
+            });
+            // 避免按钮触发展画布点击
+            document.getElementById('restartButton').addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                resetGame();
+            }, { passive: false });
+        }
+
+        // ---------- 初始化 ----------
+        resetGame();
+        bindEvents();
+        gameLoop();
+
+        // 窗口失焦时防止按键卡住 (无所谓)
+    })();
+</script>
+</body>
+</html>
