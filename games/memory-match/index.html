@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒋介石对对碰 · 记忆配对</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #2e2b28 0%, #4a3f35 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .game-container {
+            background: #665a4e;
+            padding: 24px 20px 28px 20px;
+            border-radius: 64px 64px 48px 48px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.6), inset 0 1px 4px rgba(255, 215, 150, 0.3);
+            border: 2px solid #aa8c6e;
+        }
+
+        .game-panel {
+            background: #221e1a;
+            border-radius: 32px;
+            padding: 20px 20px 18px 20px;
+            box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.7), 0 2px 0 #b99e82;
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-align: center;
+            color: #f5e7d3;
+            text-shadow: 3px 3px 0 #3f2e1e, 5px 5px 0 rgba(0,0,0,0.4);
+            font-family: 'Times New Roman', '华文楷体', 'KaiTi', serif;
+            word-break: keep-all;
+        }
+
+        .subhead {
+            text-align: center;
+            color: #d4b594;
+            margin: -4px 0 16px 0;
+            font-style: italic;
+            letter-spacing: 2px;
+            font-size: 1rem;
+            border-bottom: 1px dashed #8b7a66;
+            padding-bottom: 8px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e9dac8;
+            padding: 0 6px 12px 6px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            font-size: 1.1rem;
+        }
+
+        .pairs-left, .tries {
+            background: #2e2822;
+            padding: 6px 18px;
+            border-radius: 40px;
+            box-shadow: inset 0 2px 5px #0b0907, 0 2px 0 #6d5d4c;
+            color: #f3d9b1;
+        }
+
+        .reset-btn {
+            background: #b38b60;
+            border: none;
+            border-radius: 40px;
+            color: #1e1610;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 8px 28px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #5d4230, 0 8px 12px rgba(0, 0, 0, 0.5);
+            transition: all 0.05s ease-in;
+            letter-spacing: 2px;
+            border: 1px solid #e3c9a9;
+            font-family: inherit;
+        }
+
+        .reset-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 3px 0 #5d4230, 0 8px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            justify-content: center;
+            margin: 16px 0 8px 0;
+            padding: 0 6px;
+        }
+
+        .card {
+            aspect-ratio: 1 / 1;
+            background: #372e26;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 0 #0f0c09, 0 8px 15px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            transition: 0.1s ease-out;
+            border: 2px solid #927a62;
+            font-size: 2.4rem;
+            color: #f0dbc2;
+            transform: translateY(-2px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 235, 200, 0.15), transparent 70%);
+            pointer-events: none;
+        }
+
+        .card.face-down {
+            background: #3e352c;
+            background-image: repeating-linear-gradient(45deg, #5b4b3a 0px, #5b4b3a 4px, #4a3d30 4px, #4a3d30 8px);
+            color: transparent;
+            text-shadow: none;
+        }
+
+        .card.face-down::after {
+            content: "囍";
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dbbd97;
+            opacity: 0.5;
+            text-shadow: 0 2px 3px black;
+            transform: rotate(15deg);
+        }
+
+        .card.matched {
+            background: #4d6b4a;
+            border-color: #c6b089;
+            box-shadow: 0 4px 0 #1e2d1c, 0 8px 15px rgba(0, 0, 0, 0.4);
+            cursor: default;
+            opacity: 0.9;
+            transform: scale(0.98) translateY(0px);
+            color: #f5efd3;
+        }
+
+        .card.matched::after {
+            content: none;
+        }
+
+        .card:active:not(.matched):not(.face-down) {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #0f0c09, 0 8px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        .win-message {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffd78c;
+            background: #201b17;
+            padding: 12px 18px;
+            border-radius: 40px;
+            margin-top: 16px;
+            letter-spacing: 2px;
+            box-shadow: inset 0 2px 6px black, 0 2px 0 #725e4b;
+            transition: all 0.3s ease;
+            font-family: 'KaiTi', '华文楷体', serif;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            color: #b39b81;
+            font-size: 0.8rem;
+            margin-top: 8px;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 16px 12px 20px 12px;
+                border-radius: 40px;
+            }
+            .grid {
+                gap: 8px;
+            }
+            .card {
+                font-size: 1.8rem;
+                border-radius: 16px;
+            }
+            .card.face-down::after {
+                font-size: 1.5rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+                letter-spacing: 2px;
+            }
+            .reset-btn {
+                font-size: 1rem;
+                padding: 6px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="game-panel">
+        <h1>蒋介石对对碰</h1>
+        <div class="subhead">· 记忆配对 ·</div>
+        <div class="stats-bar">
+            <span class="pairs-left">剩余 8 对</span>
+            <button class="reset-btn" id="resetGame">重新开局</button>
+            <span class="tries">步数 0</span>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div id="winMessage" class="win-message" style="display: none;">🎉 委员长，全部配对成功！ 🎉</div>
+        <div class="footer">—— 奉化溪口 · 记忆考验 ——</div>
+    </div>
+</div>
+<script>
+    (function(){
+        // ---------- 卡牌数据 ----------
+        // 一共8对，每对使用一个“蒋介石”相关的符号/文字，复古风格
+        const PAIRS = [
+            { id: 0, symbol: '蒋', label: '蒋' },
+            { id: 1, symbol: '介', label: '介' },
+            { id: 2, symbol: '石', label: '石' },
+            { id: 3, symbol: '囍', label: '囍' },   // 双喜，民国风
+            { id: 4, symbol: '青', label: '青' },   // 青天白日元素
+            { id: 5, symbol: '天', label: '天' },
+            { id: 6, symbol: '白', label: '白' },
+            { id: 7, symbol: '日', label: '日' }
+        ];
+
+        // 每对两张，共16张
+        const TOTAL_CARDS = PAIRS.length * 2;  // 16
+        const GRID_COLS = 4;
+
+        // 全局状态
+        let cards = [];              // { pairId, symbol, matched, flipped }
+        let firstIndex = null;      // 当前翻开的第一张索引
+        let secondIndex = null;     // 当前翻开的第二张索引
+        let lockBoard = false;      // 等待动画/比较时禁止点击
+        let tries = 0;             // 步数(匹配尝试次数)
+        let matchedPairs = 0;      // 已匹配对数
+
+        const gridEl = document.getElementById('grid');
+        const pairsLeftEl = document.querySelector('.pairs-left');
+        const triesEl = document.querySelector('.tries');
+        const winMessageEl = document.getElementById('winMessage');
+        const resetBtn = document.getElementById('resetGame');
+
+        // 洗牌算法 (Fisher–Yates)
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 初始化卡牌数据 (洗牌)
+        function buildDeck() {
+            const deck = [];
+            // 每个pair生成两张
+            PAIRS.forEach((pair, idx) => {
+                deck.push({ pairId: idx, symbol: pair.symbol, matched: false, flipped: false });
+                deck.push({ pairId: idx, symbol: pair.symbol, matched: false, flipped: false });
+            });
+            return shuffleArray(deck);
+        }
+
+        // 更新UI统计
+        function updateStats() {
+            const leftPairs = PAIRS.length - matchedPairs;
+            pairsLeftEl.textContent = `剩余 ${leftPairs} 对`;
+            triesEl.textContent = `步数 ${tries}`;
+        }
+
+        // 重新渲染全部卡片（简单可靠）
+        function renderBoard() {
+            gridEl.innerHTML = '';
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                if (card.matched) {
+                    cardEl.classList.add('matched');
+                }
+                if (card.flipped || card.matched) {
+                    // 正面显示文字
+                    cardEl.textContent = card.symbol;
+                } else {
+                    // 背面：显示纹理，不加文字 (由伪元素处理)
+                    cardEl.classList.add('face-down');
+                }
+                // 自定义数据属性
+                cardEl.dataset.index = index;
+                cardEl.addEventListener('click', () => handleCardClick(index));
+                gridEl.appendChild(cardEl);
+            });
+        }
+
+        // 重置状态 (新游戏)
+        function resetGame() {
+            // 重置全局状态
+            cards = buildDeck();
+            firstIndex = null;
+            secondIndex = null;
+            lockBoard = false;
+            tries = 0;
+            matchedPairs = 0;
+            winMessageEl.style.display = 'none';
+            updateStats();
+            renderBoard();
+        }
+
+        // 检查是否胜利
+        function checkWin() {
+            if (matchedPairs === PAIRS.length) {
+                winMessageEl.style.display = 'block';
+                // 胜利时禁止点击 (已经全部匹配, 但以防万一)
+                lockBoard = true;
+            }
+        }
+
+        // 两张卡片匹配逻辑
+        function checkMatch(idx1, idx2) {
+            const card1 = cards[idx1];
+            const card2 = cards[idx2];
+            // 如果是同一张卡(理论上不会发生) 或者 两张都已匹配
+            if (idx1 === idx2 || card1.matched || card2.matched) return;
+
+            // 步数增加
+            tries++;
+            updateStats();
+
+            if (card1.pairId === card2.pairId) {
+                // 配对成功
+                card1.matched = true;
+                card2.matched = true;
+                card1.flipped = true;   // 保持正面显示
+                card2.flipped = true;
+                matchedPairs++;
+                updateStats();
+
+                // 更新这两张卡片的DOM样式
+                updateCardElement(idx1, true);
+                updateCardElement(idx2, true);
+
+                // 清空临时选中 (重要)
+                firstIndex = null;
+                secondIndex = null;
+                // 解锁 (因为配对了，不会再有延迟)
+                lockBoard = false;
+
+                // 检查是否胜利
+                checkWin();
+            } else {
+                // 配对失败: 短暂延迟后翻回去
+                lockBoard = true;
+                setTimeout(() => {
+                    // 如果在此期间没有重置游戏，则翻回
+                    // 但需要确保这些卡没有被重新赋值或匹配 (防止异步问题)
+                    // 最简单: 重置前检查卡片状态是否还是未匹配
+                    if (!card1.matched && !card2.matched) {
+                        card1.flipped = false;
+                        card2.flipped = false;
+                        // 更新DOM
+                        updateCardElement(idx1, false);
+                        updateCardElement(idx2, false);
+                    }
+                    // 清空临时索引
+                    firstIndex = null;
+                    secondIndex = null;
+                    lockBoard = false;
+                }, 600);
+            }
+        }
+
+        // 根据索引更新卡片的UI (不重新渲染全部，提高性能)
+        function updateCardElement(index, isMatchedOrFlipped) {
+            const cardEl = gridEl.children[index];
+            if (!cardEl) return;
+            const cardData = cards[index];
+
+            // 更新类
+            if (cardData.matched) {
+                cardEl.classList.add('matched');
+                cardEl.classList.remove('face-down');
+                cardEl.textContent = cardData.symbol;
+                return;
+            }
+
+            if (cardData.flipped) {
+                cardEl.classList.remove('face-down');
+                cardEl.textContent = cardData.symbol;
+            } else {
+                cardEl.classList.add('face-down');
+                cardEl.textContent = '';  // 背面不显示文字 (由伪元素控制)
+            }
+
+            // 如果matched状态但是之前没更新，补上
+            if (cardData.matched) {
+                cardEl.classList.add('matched');
+            }
+        }
+
+        // 处理卡片点击
+        function handleCardClick(index) {
+            // 各种禁止点击的情况
+            if (lockBoard) return;
+            if (index === firstIndex) return;  // 重复点击同一张
+            const card = cards[index];
+            if (card.matched) return;          // 已经配对的不能点
+            if (card.flipped) return;          // 已经翻开正在等待的也不能再点 (其实first/second机制会处理)
+
+            // 如果此时已经选中两张(理论上不会，因为lockBoard会挡住，但保险)
+            if (firstIndex !== null && secondIndex !== null) return;
+
+            // 翻转卡片
+            card.flipped = true;
+            updateCardElement(index, true);
+
+            // 记录选中
+            if (firstIndex === null) {
+                firstIndex = index;
+            } else if (secondIndex === null) {
+                secondIndex = index;
+                // 已经有两张翻开，进行比较（禁用点击）
+                lockBoard = true;
+                checkMatch(firstIndex, secondIndex);
+            }
+        }
+
+        // 初始化游戏
+        function initGame() {
+            resetGame();
+        }
+
+        // 事件绑定
+        resetBtn.addEventListener('click', () => {
+            // 重置时如果有延迟比较的timeout，可能会干扰，但重置会改变cards数组，之前的timeout里的索引与新的cards可能不匹配
+            // 简单处理方法：加一个重置标记，但已经用 cards 重新赋值，timeout 里会访问旧的 card 对象，不影响新游戏；
+            // 但可能会导致新游戏中被翻回。我们可以在reset时清除所有timeout（最好用变量存储），但为了简洁，在setTimeout里判断一下。
+            // 这里我们采用更健壮的方式：在reset时设置一个全局的 generation 计数。
+            // 但是我们已经用了简单的 resetGame，它会重新赋值cards，timeout里面访问的是旧的card对象，但是updateCardElement 可能会操作新DOM（因为索引相同但对象变了）
+            // 于是我们需要避免旧timeout影响新游戏。
+            // 快速修复：在reset时清除所有未执行的timeout (通过一个数组来记录)
+            // 简易方案：在setTimeout里检查卡片状态是否为未匹配且与之前比较的一致 (但比较麻烦)
+            // 更简单：用generation token。
+            // 鉴于这是一个简单游戏，我们直接暴力清除可能存在的timeout。用一个变量存储timeoutId。
+            if (window._pendingTimeout) {
+                clearTimeout(window._pendingTimeout);
+                window._pendingTimeout = null;
+            }
+            // 重置游戏
+            resetGame();
+        });
+
+        // 重写 checkMatch 里的 setTimeout 部分，以便能追踪
+        // 为了不重写整个函数，我们用猴子补丁方式覆盖
+        // 但这里直接重构一下上面的checkMatch? 简单处理：在setTimeout里判断generation。
+        // 实现一个generation计数器
+        let generation = 0;
+        const originalReset = resetGame;
+        resetGame = function() {
+            generation++;
+            if (window._pendingTimeout) {
+                clearTimeout(window._pendingTimeout);
+                window._pendingTimeout = null;
+            }
+            cards = buildDeck();
+            firstIndex = null;
+            secondIndex = null;
+            lockBoard = false;
+            tries = 0;
+            matchedPairs = 0;
+            winMessageEl.style.display = 'none';
+            updateStats();
+            renderBoard();
+        };
+
+        // 重新绑定resetBtn事件（使用新的resetGame）
+        resetBtn.removeEventListener('click', resetGame);
+        resetBtn.addEventListener('click', function() {
+            if (window._pendingTimeout) {
+                clearTimeout(window._pendingTimeout);
+                window._pendingTimeout = null;
+            }
+            resetGame();
+        });
+
+        // 覆盖 checkMatch 的匹配失败逻辑
+        const originalCheckMatch = checkMatch;
+        checkMatch = function(idx1, idx2) {
+            const card1 = cards[idx1];
+            const card2 = cards[idx2];
+            if (idx1 === idx2 || card1.matched || card2.matched) return;
+
+            tries++;
+            updateStats();
+
+            if (card1.pairId === card2.pairId) {
+                card1.matched = true;
+                card2.matched = true;
+                card1.flipped = true;
+                card2.flipped = true;
+                matchedPairs++;
+                updateStats();
+                updateCardElement(idx1, true);
+                updateCardElement(idx2, true);
+                firstIndex = null;
+                secondIndex = null;
+                lockBoard = false;
+                checkWin();
+            } else {
+                lockBoard = true;
+                const currentGen = generation;
+                const timeoutId = setTimeout(() => {
+                    // 如果generation改变，说明重置了，忽略本次翻回
+                    if (currentGen !== generation) return;
+                    // 再次检查卡片是否还是未匹配状态
+                    if (!card1.matched && !card2.matched) {
+                        card1.flipped = false;
+                        card2.flipped = false;
+                        updateCardElement(idx1, false);
+                        updateCardElement(idx2, false);
+                    }
+                    firstIndex = null;
+                    secondIndex = null;
+                    lockBoard = false;
+                    window._pendingTimeout = null;
+                }, 600);
+                window._pendingTimeout = timeoutId;
+            }
+        };
+
+        // 绑定新的 handleCardClick? 不用，内部调用 checkMatch 已经更新为上面的版本了
+        // 但 handleCardClick 里调用的 checkMatch 现在指向新函数 (因为函数声明提升? 我们重新赋值了checkMatch)
+        // 由于函数提升，handleCardClick中调用的checkMatch是重新赋值后的。可以。
+
+        // 启动游戏
+        initGame();
+
+        // 确保配对剩余显示正确
+        // 重写 updateStats 引用
+        // 无需改动
+
+        // 修正一下初次渲染后，如果卡牌背面的伪元素影响，没问题。
+    })();
+</script>
+</body>
+</html>

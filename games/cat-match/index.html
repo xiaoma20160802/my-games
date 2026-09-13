@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐱 猫猫连连看 · 对对碰</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, #f9e3c5 0%, #ffe6b3 100%);
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 16px;
+            margin: 0;
+        }
+
+        .game-container {
+            background: #fef9e9;
+            border-radius: 48px;
+            padding: 24px 30px 30px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.1);
+            border: 4px solid #f7d9aa;
+            max-width: 700px;
+            width: fit-content;
+            margin: 0 auto;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-size: 2.3rem;
+            color: #5e3a1c;
+            text-shadow: 2px 2px 0 #ffcd94;
+            letter-spacing: 2px;
+            margin-top: -6px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff0d6;
+            padding: 12px 22px;
+            border-radius: 60px;
+            border: 2px solid #e7bf8b;
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: #4b2e12;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.7), 0 4px 0 #c9a16b;
+            font-size: 1.2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fae4c1;
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #d8b27c;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 18px;
+            padding: 4px;
+        }
+
+        .card {
+            width: 100px;
+            height: 100px;
+            perspective: 800px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s ease;
+        }
+
+        .card:active:not(.matched) .card-inner {
+            transform: scale(0.96);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+            transform-style: preserve-3d;
+            border-radius: 24px;
+            box-shadow: 0 8px 0 #8b6b4b, 0 10px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched .card-inner {
+            transform: rotateY(180deg);
+            box-shadow: 0 0 0 4px #ffe28c, 0 8px 0 #8b6b4b, 0 10px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.matched {
+            cursor: default;
+            pointer-events: none;
+            filter: drop-shadow(0 0 8px #ffb347);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.3rem;
+            border: 3px solid #b5824e;
+            background: #fcf3e0;
+            box-sizing: border-box;
+        }
+
+        .card-front {
+            background: #ffe6b0;
+            background-image: radial-gradient(circle at 30% 30%, #ffedc9 10%, #f7cf8f 80%);
+            border: 3px solid #c9974b;
+            font-size: 3.8rem;
+            color: #5b3e1e;
+            text-shadow: 2px 2px 0 #fce9c0;
+            transform: rotateY(0deg);
+        }
+
+        .card-back {
+            background: #e7cba7;
+            background-image: repeating-linear-gradient(45deg, #ddb98b 0px, #ddb98b 8px, #f3ddba 8px, #f3ddba 16px);
+            transform: rotateY(180deg);
+            font-size: 3.5rem;
+            border: 3px solid #ac7e4a;
+            color: #6b4a24;
+        }
+
+        .card.matched .card-back {
+            background: #d4edb1;
+            background-image: repeating-linear-gradient(45deg, #c4e69c 0px, #c4e69c 8px, #e2ffbe 8px, #e2ffbe 16px);
+            border-color: #7f9f4b;
+            box-shadow: inset 0 0 10px #f3ffd6;
+        }
+
+        .btn {
+            background: #f5cf9b;
+            border: none;
+            border-radius: 40px;
+            padding: 14px 28px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #4b2e12;
+            border-bottom: 6px solid #b5844b;
+            cursor: pointer;
+            transition: 0.08s linear;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        .btn:active {
+            border-bottom-width: 2px;
+            transform: translateY(4px);
+            background: #f0c386;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            transform: translateY(0);
+            border-bottom-width: 6px;
+            pointer-events: none;
+        }
+
+        .win-message {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #a95d1a;
+            text-shadow: 2px 2px 0 #ffe5b9;
+            margin: 12px 0 0;
+            background: #fff1d2;
+            padding: 12px;
+            border-radius: 50px;
+            border: 2px dashed #dba55e;
+            animation: pop 0.5s;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        /* 手机小屏适配 */
+        @media (max-width: 550px) {
+            .game-container {
+                padding: 18px 14px 20px;
+                border-radius: 36px;
+            }
+            h1 {
+                font-size: 1.7rem;
+            }
+            .card {
+                width: 70px;
+                height: 70px;
+            }
+            .card-front, .card-back {
+                font-size: 2.5rem;
+                border-radius: 16px;
+            }
+            .stats {
+                font-size: 0.95rem;
+                padding: 10px 14px;
+            }
+            .stat-item {
+                padding: 4px 12px;
+            }
+            .btn {
+                font-size: 1.2rem;
+                padding: 12px 18px;
+            }
+            .grid {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>
+        <span>🐈</span> 猫猫连连看 <span>🐈</span>
+    </h1>
+
+    <div class="stats">
+        <div class="stat-item">⏱️ <span id="timer">0</span>s</div>
+        <div class="stat-item">👣 <span id="moves">0</span></div>
+        <div class="stat-item">🐱 <span id="pairs">0</span>/8</div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <button class="btn" id="resetBtn">🔄 再来一局</button>
+
+    <div id="winMessage" class="win-message" style="display: none;">🎉 喵喵胜利！ 🎉</div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 可爱猫猫表情 (8对) ----------
+        const CAT_EMOJIS = [
+            '🐱',  // 猫脸
+            '😺',  // 开心猫
+            '😸',  // 笑眼猫
+            '😹',  // 笑哭猫
+            '😻',  // 心形眼猫
+            '😼',  // 歪嘴猫
+            '😽',  // 亲吻猫
+            '🙀'   // 惊讶猫
+        ];
+
+        // 每个emoji出现两次 => 一共16张牌
+        const TOTAL_PAIRS = 8;
+        let cardsData = [];            // { id, emoji, matched }
+        let openedCards = [];          // 当前翻开(未匹配)的card索引
+        let matchedPairs = 0;
+        let moves = 0;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        let gameFinished = false;
+        let lockBoard = false;         // 动画/匹配过程中禁止点击
+
+        // DOM 元素
+        const grid = document.getElementById('grid');
+        const timerSpan = document.getElementById('timer');
+        const movesSpan = document.getElementById('moves');
+        const pairsSpan = document.getElementById('pairs');
+        const resetBtn = document.getElementById('resetBtn');
+        const winMessageDiv = document.getElementById('winMessage');
+
+        // ---------- 辅助函数 ----------
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 初始化卡片数据 (打乱)
+        function buildCardsData() {
+            const doubled = [];
+            CAT_EMOJIS.forEach((emoji, idx) => {
+                doubled.push({ id: idx * 2, emoji, matched: false });
+                doubled.push({ id: idx * 2 + 1, emoji, matched: false });
+            });
+            return shuffleArray(doubled);
+        }
+
+        // 停止计时器
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // 开始计时器 (如果尚未开始且游戏未结束)
+        function startTimer() {
+            if (timerInterval || gameFinished) return;
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                timerSpan.textContent = timerSeconds;
+            }, 1000);
+        }
+
+        // 重置计时器
+        function resetTimer() {
+            stopTimer();
+            timerSeconds = 0;
+            timerSpan.textContent = '0';
+        }
+
+        // 更新界面统计数据
+        function updateStats() {
+            movesSpan.textContent = moves;
+            pairsSpan.textContent = `${matchedPairs}/${TOTAL_PAIRS}`;
+        }
+
+        // 检查是否胜利
+        function checkWin() {
+            if (matchedPairs === TOTAL_PAIRS && !gameFinished) {
+                gameFinished = true;
+                stopTimer();
+                winMessageDiv.style.display = 'block';
+                // 延迟一下让最后一张卡片动画完成
+            } else {
+                winMessageDiv.style.display = 'none';
+            }
+        }
+
+        // 重置游戏状态
+        function resetGame() {
+            // 停止所有计时，重置状态
+            stopTimer();
+            gameFinished = false;
+            lockBoard = false;
+            openedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            resetTimer();
+            winMessageDiv.style.display = 'none';
+
+            // 生成新数据
+            cardsData = buildCardsData();
+
+            // 重新渲染网格
+            renderGrid();
+
+            // 更新统计
+            updateStats();
+        }
+
+        // ---------- 核心逻辑 ----------
+        // 翻开卡片
+        function flipCard(index, cardElement) {
+            // 各种禁止翻开的情况
+            if (lockBoard || gameFinished) return;
+            if (cardsData[index].matched) return;
+            if (openedCards.includes(index)) return; // 已经翻开
+
+            // 如果已经翻开两张，不能继续点 (由lockBoard保证，但再加一层)
+            if (openedCards.length >= 2) return;
+
+            // 翻开当前卡片 (视觉)
+            cardElement.classList.add('flipped');
+
+            // 记录翻开
+            openedCards.push(index);
+
+            // 首次翻开启动计时器
+            if (openedCards.length === 1 && !timerInterval && !gameFinished) {
+                startTimer();
+            }
+
+            // 如果正好翻开了两张，检查匹配
+            if (openedCards.length === 2) {
+                // 增加步数
+                moves++;
+                updateStats();
+
+                const [idxA, idxB] = openedCards;
+                const cardA = cardsData[idxA];
+                const cardB = cardsData[idxB];
+
+                if (cardA.emoji === cardB.emoji) {
+                    // 匹配成功
+                    cardA.matched = true;
+                    cardB.matched = true;
+                    matchedPairs++;
+                    updateStats();
+
+                    // 给两张卡片添加matched类 (视觉)
+                    const cardElA = document.querySelector(`.card[data-index="${idxA}"]`);
+                    const cardElB = document.querySelector(`.card[data-index="${idxB}"]`);
+                    if (cardElA) cardElA.classList.add('matched');
+                    if (cardElB) cardElB.classList.add('matched');
+
+                    // 清空openedCards (因为已匹配)
+                    openedCards = [];
+
+                    // 检查是否胜利
+                    checkWin();
+
+                    // 如果胜利，停止计时并禁用点击 (gameFinished控制)
+                    if (gameFinished) {
+                        stopTimer();
+                    }
+                } else {
+                    // 匹配失败，锁板，稍后翻回
+                    lockBoard = true;
+                    setTimeout(() => {
+                        // 如果游戏已结束或卡片已经匹配 (通常不会)，不处理
+                        if (gameFinished) {
+                            // 但游戏结束一般是匹配所有，不可能在失败时结束
+                        }
+                        const cardElA = document.querySelector(`.card[data-index="${idxA}"]`);
+                        const cardElB = document.querySelector(`.card[data-index="${idxB}"]`);
+                        if (cardElA) cardElA.classList.remove('flipped');
+                        if (cardElB) cardElB.classList.remove('flipped');
+
+                        // 清空暂存区
+                        openedCards = [];
+                        lockBoard = false;
+                    }, 700);
+                }
+            }
+        }
+
+        // 渲染网格 (根据cardsData)
+        function renderGrid() {
+            grid.innerHTML = '';
+            cardsData.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                if (card.matched) cardEl.classList.add('matched');
+                cardEl.setAttribute('data-index', index);
+
+                // 内部结构
+                const inner = document.createElement('div');
+                inner.className = 'card-inner';
+
+                const front = document.createElement('div');
+                front.className = 'card-front';
+                front.textContent = '🐾'; // 背面小爪子
+
+                const back = document.createElement('div');
+                back.className = 'card-back';
+                back.textContent = card.emoji;
+
+                inner.appendChild(front);
+                inner.appendChild(back);
+                cardEl.appendChild(inner);
+
+                // 点击事件
+                cardEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    flipCard(index, cardEl);
+                });
+
+                grid.appendChild(cardEl);
+            });
+        }
+
+        // ---------- 初始化 / 重置 ----------
+        function initGame() {
+            resetGame();  // 重置所有状态并渲染
+        }
+
+        // 重置按钮监听
+        resetBtn.addEventListener('click', () => {
+            resetGame();
+        });
+
+        // 开始游戏
+        initGame();
+
+        // 额外: 如果胜利后点击重置，一切重新开始。resetGame里面已经处理了。
+        // 为了美观: 如果所有卡片匹配，胜利后重新开始。
+        // 还有一点：当卡片匹配成功后，如果点击匹配卡片，因为已经matched类，且flipCard有判断，不会影响。
+        // 另外锁板期间点击无效。
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 我的游戏厅</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh;
+    background:linear-gradient(145deg,#0b1120,#1a2a3a);
+    font-family:'Segoe UI',system-ui,sans-serif;
+    color:#e8eefc;
+    padding:40px 20px;
+  }
+  h1 {
+    text-align:center;
+    font-size:clamp(1.8rem,5vw,2.6rem);
+    margin-bottom:8px;
+    background:linear-gradient(90deg,#3ae374,#5ad1ff,#a29bfe);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    letter-spacing:2px;
+  }
+  .sub {
+    text-align:center;
+    color:#7d9dbb;
+    margin-bottom:40px;
+    font-size:0.95rem;
+    letter-spacing:1px;
+  }
+  .grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:20px;
+    max-width:1000px;
+    margin:0 auto;
+  }
+  .card {
+    background:#1f2e3f;
+    border-radius:24px;
+    padding:24px 20px;
+    text-decoration:none;
+    color:inherit;
+    box-shadow:0 10px 24px rgba(0,0,0,0.5),inset 0 2px 4px rgba(255,255,255,0.06);
+    transition:transform 0.15s,box-shadow 0.15s;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    border:1px solid #2d445b;
+  }
+  .card:hover {
+    transform:translateY(-6px);
+    box-shadow:0 18px 32px rgba(0,0,0,0.6),inset 0 2px 4px rgba(255,255,255,0.1);
+  }
+  .card:active { transform:translateY(-2px); }
+  .icon { font-size:2.6rem; line-height:1; }
+  .name { font-size:1.15rem; font-weight:700; color:#ffe484; }
+  .desc { font-size:0.85rem; color:#9fb8d0; line-height:1.5; }
+  footer {
+    text-align:center;
+    margin-top:50px;
+    color:#4a6480;
+    font-size:0.8rem;
+  }
+</style>
+</head>
+<body>
+  <h1>🎮 我的游戏厅</h1>
+  <p class="sub">点卡片开始玩 · 全部单文件 · 手机也能玩</p >
+
+  <div class="grid">
+    <a class="card" href=" ">
+      <div class="icon">🌈</div>
+      <div class="name">彩虹跳跃</div>
+      <div class="desc">点击跳跃，越过彩虹柱</div>
+    </a >
+    <a class="card" href="games/cat-match/">
+      <div class="icon">🐱</div>
+      <div class="name">猫猫连连看</div>
+      <div class="desc">记忆配对，8 对猫猫</div>
+    </a >
+    <a class="card" href="games/nebula-strike/">
+      <div class="icon">🚀</div>
+      <div class="name">星云突击</div>
+      <div class="desc">3D 太空射击，波次与 Boss</div>
+    </a >
+    <a class="card" href="games/snake-evo/">
+      <div class="icon">🐍</div>
+      <div class="name">贪吃蛇·进化</div>
+      <div class="desc">多模式多关卡，道具 buff</div>
+    </a >
+    <a class="card" href="games/memory-match/">
+      <div class="icon">🃏</div>
+      <div class="name">对对碰</div>
+      <div class="desc">复古记忆配对</div>
+    </a >
+    <a class="card" href="games/chess/">
+      <div class="icon">♟️</div>
+      <div class="name">国际象棋</div>
+      <div class="desc">人机对战，完整规则</div>
+    </a >
+    <a class="card" href="games/chess-cheat/">
+      <div class="icon">✨</div>
+      <div class="name">外挂国际象棋</div>
+      <div class="desc">加后外挂，爽就完事</div>
+    </a >
+    <a class="card" href="games/flying-chess/">
+      <div class="icon">✈️</div>
+      <div class="name">飞行棋</div>
+      <div class="desc">2-4 人对战，飞行点</div>
+    </a >
+  </div>
+
+  <footer>Made with ❤️ · Powered by GitHub Pages</footer>
+</body>
+</html>
